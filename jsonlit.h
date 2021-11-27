@@ -53,7 +53,7 @@ std::pair<int, Token> TokenizeNumber(const std::string& src, int pos) {
 	std::pair<int, Token> r{};
 	int length = 0;
 
-	while (isdigit(src[pos])) {
+	while (isdigit(src[pos]) || src[pos] == '.') {
 		length++;
 		pos++;
 
@@ -163,6 +163,7 @@ std::vector<std::pair<int, Token>> TokenizeAll(const std::string& src) {
 enum class JsonObjectType {
 	Unknown,
 	Integer,
+	Float,
 	String,
 	Boolean,
 	Object,
@@ -184,6 +185,11 @@ public:
 
 	JsonObject& operator= (int integer) {
 		value = integer;
+		return *this;
+	}
+
+	JsonObject& operator= (float v) {
+		value = v;
 		return *this;
 	}
 
@@ -218,6 +224,12 @@ public:
 		throw;
 	}
 
+	float ToFloat() {
+		if (GetType() == JsonObjectType::Float)
+			return std::any_cast<float>(value);
+		throw;
+	}
+
 	std::string ToString() {
 		if (GetType() == JsonObjectType::String)
 			return std::any_cast<std::string>(value);
@@ -245,6 +257,9 @@ public:
 	JsonObjectType GetType() {
 		if (value.type() == typeid(int)) {
 			return JsonObjectType::Integer;
+		}
+		if (value.type() == typeid(float)) {
+			return JsonObjectType::Float;
 		}
 		if (value.type() == typeid(std::string)) {
 			return JsonObjectType::String;
@@ -274,7 +289,10 @@ std::pair<int, JsonObject> ParseJsonObject(std::vector<std::pair<int, Token>> to
 	}
 
 	if (tokens[position].second.type == TokenType::NUMBER) {
-		r = std::stoi(tokens[position].second.value);
+		if (tokens[position].second.value.find(".") != std::string::npos)
+			r = std::stof(tokens[position].second.value);
+		else
+			r = std::stoi(tokens[position].second.value);
 		return std::make_pair(1, r);
 	}
 
